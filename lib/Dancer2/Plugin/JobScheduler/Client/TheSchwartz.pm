@@ -36,7 +36,6 @@ sub _build_context {
 }
 
 use Moo;
-use Dancer2::Plugin::Database;
 use TheSchwartz::JobScheduler;
 use TheSchwartz::JobScheduler::Job;
 
