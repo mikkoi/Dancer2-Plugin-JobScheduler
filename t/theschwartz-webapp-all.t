@@ -26,7 +26,7 @@ use JSON qw( to_json from_json );
 use Log::Any::Adapter ('Stdout', log_level => 'debug' );
 
 use Dancer2::Plugin::JobScheduler::TestingUtils qw( :all );
-use Test::Database::Temp;
+use Database::Temp;
 use Data::Dumper;
 
 # Test databases
@@ -37,8 +37,8 @@ BEGIN {
     # Create test databases
     # %test_dbs = build_test_dbs( @drivers );
 
-    my $driver = 'Pg';
-    my $test_db = Test::Database::Temp->new(
+    my $driver = 'SQLite';
+    my $test_db = Database::Temp->new(
         driver => $driver,
         cleanup => 0,
         init => sub {

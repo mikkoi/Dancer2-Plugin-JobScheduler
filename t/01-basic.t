@@ -8,6 +8,10 @@ use HTTP::Request::Common;
 use Crypt::JWT qw(encode_jwt decode_jwt);
 use Database::ManagedHandle;
 
+# Activate for testing
+# use Log::Any::Adapter ('Stdout', log_level => 'debug' );
+
+
 my %plugin_config = (
     default => 'theschwartz',
     schedulers => {
