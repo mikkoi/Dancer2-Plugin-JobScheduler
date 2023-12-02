@@ -211,12 +211,6 @@ sub submit_job {
     my ($self, %args) = @_;
     my $client_key = $args{client} ? $args{client} : $self->default;
     my $job = $args{job};
-    # if( ref $args[0] ne 'HASH' ) {
-    #     $client_key = $args[0];
-    #     $job = $args[1];
-    # } else {
-    #     $job = $args[0];
-    # }
     $log->debugf('_clients: %s', $self->_clients);
     my $client = $self->_clients->{$client_key};
     return ( $client->submit_job( $job ) );
