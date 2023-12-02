@@ -1,4 +1,4 @@
-package Dancer2::Plugin::JobScheduler::TestingUtils;
+package Dancer2::Plugin::JobScheduler::Testing::Utils;
 
 use strict;
 use warnings;
@@ -31,7 +31,7 @@ use Test::Database::Temp;
 
 sub init_db {
     my ($driver, $dbh, $name) = @_;
-    my $module = "TheSchwartz::Database::Schemas::${driver}";
+    my $module = "Dancer2::Plugin::JobScheduler::Testing::TheSchwartz::Database::Schemas::${driver}";
     load $module;
     my $schema = $module->new->schema;
     $dbh->begin_work();

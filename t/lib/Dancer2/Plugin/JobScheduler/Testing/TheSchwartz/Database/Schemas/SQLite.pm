@@ -1,4 +1,4 @@
-package TheSchwartz::Database::Schemas::SQLite;
+package Dancer2::Plugin::JobScheduler::Testing::TheSchwartz::Database::Schemas::SQLite;
 use strict;
 use warnings;
 

@@ -25,7 +25,7 @@ use JSON qw( to_json from_json );
 # Activate for testing
 use Log::Any::Adapter ('Stdout', log_level => 'debug' );
 
-use Dancer2::Plugin::JobScheduler::TestingUtils qw( :all );
+use Dancer2::Plugin::JobScheduler::Testing::Utils qw( :all );
 use Test::Database::Temp;
 use Data::Dumper;
 
@@ -58,7 +58,7 @@ BEGIN {
         package Dancer2::Plugin::Database::MyHandle;
         use Dancer2;
         use Dancer2::Plugin::Database;
-        use Dancer2::Plugin::JobScheduler::TestingUtils qw( :all );
+        use Dancer2::Plugin::JobScheduler::Testing::Utils qw( :all );
         BEGIN {
             set log => 'debug';
             set plugins => {

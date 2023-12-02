@@ -23,9 +23,9 @@ use Crypt::JWT qw(encode_jwt decode_jwt);
 use JSON qw( to_json );
 
 # Activate for testing
-use Log::Any::Adapter ('Stdout', log_level => 'debug' );
+# use Log::Any::Adapter ('Stdout', log_level => 'debug' );
 
-use Dancer2::Plugin::JobScheduler::TestingUtils qw( :all );
+use Dancer2::Plugin::JobScheduler::Testing::Utils qw( :all );
 use Database::Temp;
 use Data::Dumper;
 
@@ -45,7 +45,7 @@ BEGIN {
     {
         package Database::ManagedHandleConfigLocal;
         use Moo;
-        use Dancer2::Plugin::JobScheduler::TestingUtils qw( :all );
+        use Dancer2::Plugin::JobScheduler::Testing::Utils qw( :all );
         has config => (
             is => 'ro',
             default => sub {
