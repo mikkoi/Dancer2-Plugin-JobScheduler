@@ -149,6 +149,11 @@ $mech->content_is(q{OK}, 'Correct return');
 $mech->get_ok(q{/config});
 $mech->content_is(to_json(\%plugin_config,{utf8=>1,canonical=>1,}), 'Correct return');
 
+# List jobs, get 0
+$mech->get_ok(q{/list_jobs});
+$mech->content_is(to_json({ error => undef, status=>'OK',success=>1, jobs =>[
+            ]}, {utf8=>1,canonical=>1,}), 'Correct return');
+
 # Submit a job
 $mech->get_ok(q{/submit_job});
 $mech->content_is(to_json({ error => undef, status=>'OK',success=>1, id=>1, }, {utf8=>1,canonical=>1,}), 'Correct return');
