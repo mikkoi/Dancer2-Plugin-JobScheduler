@@ -29,13 +29,14 @@ use Dancer2::Plugin::JobScheduler::Testing::Utils qw( :all );
 use Database::Temp;
 use Data::Dumper;
 
+my $test_db;
 BEGIN {
     # Create only one test database
 
     my $driver = 'SQLite';
-    my $test_db = Database::Temp->new(
+    $test_db = Database::Temp->new(
         driver => $driver,
-        cleanup => 0,
+        cleanup => 1,
         init => sub {
             my ($dbh, $name) = @_;
             init_db( $driver, $dbh, $name);
@@ -43,7 +44,7 @@ BEGIN {
     );
 
     {
-        package Database::ManagedHandleConfigLocal;
+        package Dancer2::Plugin::JobScheduler::Testing::Database::ManagedHandleConfigLocal;
         use Moo;
         use Dancer2::Plugin::JobScheduler::Testing::Utils qw( :all );
         has config => (
@@ -63,7 +64,8 @@ BEGIN {
     }
 
     ## no critic (Variables::RequireLocalizedPunctuationVars)
-    $ENV{DATABASE_MANAGED_HANDLE_CONFIG} = 'Database::ManagedHandleConfigLocal';
+    $ENV{DATABASE_MANAGED_HANDLE_CONFIG}
+        = 'Dancer2::Plugin::JobScheduler::Testing::Database::ManagedHandleConfigLocal';
 
     use Database::ManagedHandle;
     Database::ManagedHandle->instance;
@@ -163,5 +165,10 @@ $mech->get_ok(q{/list_jobs});
 $mech->content_is(to_json({ error => undef, status=>'OK',success=>1, jobs =>[
                 {task=>'task1',args=>{name=>'Mikko',age=>123},opts=>{}, },
             ]}, {utf8=>1,canonical=>1,}), 'Correct return');
+
+# Undefine all Database::Temp objects explicitly to demolish
+# the databases in good order, instead of doing it unmanaged
+# during global destruct, when program dies.
+$test_db = undef;
 
 done_testing;

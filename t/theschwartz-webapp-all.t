@@ -33,12 +33,13 @@ use Data::Dumper;
 # my @drivers = qw( Pg );
 # my %test_dbs;
 
+my $test_db;
 BEGIN {
     # Create test databases
     # %test_dbs = build_test_dbs( @drivers );
 
     my $driver = 'SQLite';
-    my $test_db = Database::Temp->new(
+    $test_db = Database::Temp->new(
         driver => $driver,
         cleanup => 0,
         init => sub {
@@ -48,7 +49,7 @@ BEGIN {
     );
 
     {
-        package Database::ManagedHandleConfigLocal;
+        package Dancer2::Plugin::JobScheduler::Testing::Database::ManagedHandleConfigLocal;
         use Moo;
         use Dancer2::Plugin::JobScheduler::Testing::Utils qw( :all );
         has config => (
@@ -69,7 +70,8 @@ BEGIN {
     }
 
     ## no critic (Variables::RequireLocalizedPunctuationVars)
-    $ENV{DATABASE_MANAGED_HANDLE_CONFIG} = 'Database::ManagedHandleConfigLocal';
+    $ENV{DATABASE_MANAGED_HANDLE_CONFIG}
+        = 'Dancer2::Plugin::JobScheduler::Testing::Database::ManagedHandleConfigLocal';
 
     use Database::ManagedHandle;
     Database::ManagedHandle->instance;
@@ -181,4 +183,10 @@ $mech->post(q{/submit_job/task_4}, content => to_json({
         opts => { unique_key => 'UNIQ_123' },
     }));
 is( from_json($mech->content), { error => undef, status=>'OK',success=>1, id=>3}, 'Correct return');
+
+# Undefine all Database::Temp objects explicitly to demolish
+# the databases in good order, instead of doing it unmanaged
+# during global destruct, when program dies.
+$test_db = undef;
+
 done_testing;
