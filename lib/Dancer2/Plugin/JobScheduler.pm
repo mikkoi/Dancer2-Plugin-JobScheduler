@@ -10,14 +10,15 @@ use warnings;
 
 =encoding utf8
 
-=for comments
+=cut
 
-Lots of subs not covered by Pod::Coverage because they are inherited from
-Dancer2::Plugin.
+#Lots of subs not covered by Pod::Coverage
+#because they are inherited from Dancer2::Plugin.
 
 =for Pod::Coverage ClassHooks PluginKeyword dancer_app execute_plugin_hook hook
 =for Pod::Coverage list_jobs on_plugin_import plugin_args plugin_setting
 =for Pod::Coverage register register_hook register_plugin request submit_job var
+
 
 =head1 SYNOPSIS
 
@@ -70,13 +71,39 @@ Dancer2::Plugin.
         );
         return to_json(\%r);
     };
-    
+
 
 =head1 DESCRIPTION
 
-This package is an interface to access different
+Dancer2::Plugin::JobScheduler is an interface to access different
 L<job schedulers|https://en.wikipedia.org/wiki/Job_scheduler> in L<Dancer2>
-web app. Supported job schedulers:
+web app.
+
+Dancer2::Plugin::JobScheduler provides an interface to submit jobs
+and query jobs currently in queue. As a Dancer2 plugin, it creates two
+new commands in the web app: C<submit> and C<list_jobs>.
+
+These commands abstract away the complexity of interfacing with a job scheduler.
+User does not need to even know which job scheduler the website is using,
+unless there are several in use, in which case they can be identified
+by a short id.
+
+A job scheduler is used to off-load heavy or time demanding tasks from the web app
+so that it can answer user's web requests as quickly as possible. One example
+of tasks like these is sending a confirmation email. The email can be sent
+after a delay, so the sending is scheduled off to a worker server somewhere else
+where it will not burden the web app.
+
+There are many job schedulers, and since their operation is separated from
+Dancer2 web app, they can be implemented in any language, not just Perl,
+the language of Dancer2.
+
+Perl has several job schedulers, too. Most notable ones are
+L<TheSchwartz> and L<Minion>. Also L<Gearman|http://gearman.org/>
+is often mentioned because Gearman's L<original version|https://en.wikipedia.org/wiki/Gearman>
+was written in Perl though later it was rewritten in C.
+
+Dancer2::Plugin::JobSchedule supports the following job schedulers:
 
 =over 8
 
@@ -84,9 +111,163 @@ web app. Supported job schedulers:
 
 =back
 
-Dancer2::Plugin::JobScheduler provides an interface to submit jobs
-and query jobs currently in queue. As a Dancer2 plugin, it creates two
-new commands in the web app: C<submit> and C<list_jobs>.
+=head1 METHODS
+
+=head2 submit
+
+Submit a job with arguments to a job scheduler.
+This can be as simple as following:
+
+    submit_job( job => { task => 'task_name' });
+
+In the example above, C<submit_job> uses the default scheduler.
+This is enough when there is only one job scheduler.
+
+Parameter B<job> can also have sub parameters:
+
+=over 8
+
+=item B<args> can be used to provide a hash of arguments to the task. These are task specific.
+
+=item B<opts> can be used to provide a hash of options for the job scheduler. These are job scheduler specific and rarely used. They can be used, for example, to submit the job a particular queue if there are priority queues in the system. In the case of TheSchwartz, the option B<run_after> specifies a delay for the execution.
+
+=back
+
+    submit_job(
+        job => {
+            task => 'task_name',
+            args => { name => 'Average Joe', age => 67 },
+            opts => { run_after => time + (60*60) },
+        },
+    );
+
+In the example above, the task is created with a delay of 60 minutes,
+i.e. the job scheduler TheSchwartz will not attempt to run the task
+before one hour is passed.
+
+If you have several different job schedulers you can submit jobs to,
+then use parameter B<client> to identify the one you want to use.
+The client names are specified in the configuration.
+You can also specify a default client.
+
+    submit_job(
+        client => 'theschwartz',
+        job => {
+            task => 'task_name',
+        },
+    );
+
+C<submit_job> will return a hash.
+This contains at least the following items:
+
+=over 8
+
+=item success, boolean. Was the operation successful?
+
+=item status, string. Contains the status of the submit. In the case of success, this will be "OK".
+
+=item error, string. Contains error message if a message is available. Can be undef.
+
+=back
+
+It can also contain other items depending on the job scheduler.
+In the case of TheSchwartz and successful submit, there will be item B<id>
+which contains the id of the new job in the queue.
+
+The last example showcases a very trivial way on how to integrate C<submit_job> into
+a route:
+
+    post q{/send_email} => sub {
+        my $email = body_parameters->{email};
+        # Remember to untaint input:
+        ($email) = $email =~ m/ ( [a-zA-Z0-9]{1,} @ [a-zA-Z0-9]{1,} ) /msx;
+        submit_job(
+            job => {
+                task => 'send_email',
+                args => { email => $email },
+            },
+        );
+    };
+
+
+=head2 list_jobs
+
+Return a list of all active jobs in the job scheduler.
+
+Parameters:
+
+=over 8
+
+=item client, string. The scheduler name. Default specified in the configuration.
+
+=item search_params, hash. These are job scheduler specific.
+
+=back
+
+    set serializer => q{JSON};
+    get q{/list_jobs} => sub {
+        my %r = list_jobs(
+            client => 'theschwartz',
+            search_params => {
+                task => 'task1',
+            },
+        );
+        return $r{'jobs'};
+    };
+
+
+=head1 CONFIGURATION
+
+Dancer2::Plugin::JobScheduler uses Dancer2's configuration system.
+You can either write your configuration in the config files
+or specify it in the module.
+
+The different job schedulers have their own configuration needs.
+As an example we will cover here only TheSchwartz.
+
+It's configuration requires only the knowledge of how to connect with
+its database backends. TheShwartz can use simultaneously
+several databases as backends. When inserting a new task,
+it L<Dancer2::Plugin::JobScheduler::Client::TheSchwartz>
+loops over all available databases until it finds one
+that it can connect and writes the task there.
+TheSchwartz client does not maintain its own database handles.
+Instead, it requires the calling program to give it
+subroutine pointer or the name and method of a class
+which can provide the handle.
+In a long running process, such as a web service,
+the database handle can become invalid. Database can
+close the handle if it stays unused a long period of time.
+The database handle has to be recreated if that happens.
+
+This example creates two databases.
+
+    my %plugin_config = (
+        default => 'theschwartz',
+        schedulers => {
+            theschwartz => {
+                package => 'TheSchwartz',
+                parameters => {
+                    database_handle_callback => 'Database::ManagedHandle->instance->dbh',
+                    databases => [
+                        {
+                            id => 'theschwartz_db1',
+                            prefix => q{},
+                        },
+                    ]
+                }
+            }
+        }
+    );
+        my $get_dbh = sub {
+            my ($id) = @_;
+            return DBI->connect( $test_dbs{ $id }->connection_info );
+        };
+
+
+=head1 SEE ALSO
+
+There is a Dancer2 plugin for Minion: L<Dancer2::Plugin::Minion>.
 
 =cut
 
