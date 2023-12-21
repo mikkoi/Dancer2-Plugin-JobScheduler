@@ -88,7 +88,7 @@ User does not need to even know which job scheduler the website is using,
 unless there are several in use, in which case they can be identified
 by a short id.
 
-A job scheduler is used to off-load heavy or time demanding tasks from the web app
+A job scheduler is used to off-load CPU power or time consuming tasks from the web app
 so that it can answer user's web requests as quickly as possible. One example
 of tasks like these is sending a confirmation email. The email can be sent
 after a delay, so the sending is scheduled off to a worker server somewhere else
@@ -100,10 +100,11 @@ the language of Dancer2.
 
 Perl has several job schedulers, too. Most notable ones are
 L<TheSchwartz> and L<Minion>. Also L<Gearman|http://gearman.org/>
-is often mentioned because Gearman's L<original version|https://en.wikipedia.org/wiki/Gearman>
+is often mentioned among job schedulers because Gearman's
+L<original version|https://en.wikipedia.org/wiki/Gearman>
 was written in Perl though later it was rewritten in C.
 
-Dancer2::Plugin::JobSchedule supports the following job schedulers:
+Dancer2::Plugin::JobScheduler supports the following job schedulers:
 
 =over 8
 
@@ -129,7 +130,7 @@ Parameter B<job> can also have sub parameters:
 
 =item B<args> can be used to provide a hash of arguments to the task. These are task specific.
 
-=item B<opts> can be used to provide a hash of options for the job scheduler. These are job scheduler specific and rarely used. They can be used, for example, to submit the job a particular queue if there are priority queues in the system. In the case of TheSchwartz, the option B<run_after> specifies a delay for the execution.
+=item B<opts> can be used to provide a hash of options for the job scheduler. These are job scheduler specific and rarely used. They can be used, for example, to submit the job to a particular queue if there are priority queues in the system.
 
 =back
 
@@ -171,10 +172,10 @@ This contains at least the following items:
 =back
 
 It can also contain other items depending on the job scheduler.
-In the case of TheSchwartz and successful submit, there will be item B<id>
+In the case of TheSchwartz (after a successful submit) , there will be item B<id>
 which contains the id of the new job in the queue.
 
-The last example showcases a very trivial way on how to integrate C<submit_job> into
+The following example showcases a very trivial way on how to integrate C<submit_job> into
 a route:
 
     post q{/send_email} => sub {
