@@ -27,7 +27,6 @@ use JSON qw( to_json );
 
 use Dancer2::Plugin::JobScheduler::Testing::Utils qw( :all );
 use Database::Temp;
-use Data::Dumper;
 
 my $test_db;
 BEGIN {
@@ -100,7 +99,6 @@ my %plugin_config = (
         };
     }
     use Dancer2::Plugin::JobScheduler;
-    use Data::Dumper;
 
     get q{/} => sub {
         status HTTP_OK;

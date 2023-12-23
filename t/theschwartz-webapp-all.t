@@ -27,7 +27,6 @@ use JSON qw( to_json from_json );
 
 use Dancer2::Plugin::JobScheduler::Testing::Utils qw( :all );
 use Database::Temp;
-use Data::Dumper;
 
 # Test databases
 # my @drivers = qw( Pg );
@@ -106,7 +105,6 @@ my %plugin_config = (
         };
     }
     use Dancer2::Plugin::JobScheduler;
-    use Data::Dumper;
 
     set serializer => 'JSON';
 
