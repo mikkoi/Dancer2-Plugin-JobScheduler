@@ -17,20 +17,19 @@ my %plugin_config = (
         theschwartz => {
             package => 'TheSchwartz',
             parameters => {
-                database_handle_callback => 'Database::ManagedHandle->instance->dbh',
-                databases => [
-                    {
-                        id => 'theschwartz_db1',
+                dbh_callback => 'Database::ManagedHandle->instance->dbh',
+                databases => {
+                    'theschwartz_db1' => {
                         prefix => q{},
-                    },
-                ]
+                    }
+                },
             }
         }
     }
 );
 
 {
-    package TestProgram;
+    package Dancer2::Plugin::JobScheduler::Testing::TheSchwartz::WebApp::Config;
 	use Dancer2;
     use HTTP::Status qw( :constants status_message );
 	BEGIN {
@@ -52,7 +51,7 @@ my %plugin_config = (
 	};
 }
 
-my $app = TestProgram->to_app;
+my $app = Dancer2::Plugin::JobScheduler::Testing::TheSchwartz::WebApp::Config->to_app;
 is (ref $app, 'CODE', 'Got the test app');
 
 # Activate web app

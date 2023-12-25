@@ -1,5 +1,5 @@
 #!perl
-## no critic (Modules::ProhibitMultiplePackages)
+# no critic (Modules::ProhibitMultiplePackages)
 
 use strict;
 use warnings;
@@ -7,6 +7,7 @@ use warnings;
 use utf8;
 use Test2::V0;
 set_encoding('utf8');
+# use Test2::Plugin::BailOnFail;
 
 # Add t/lib to @INC
 use FindBin 1.51 qw( $RealBin );
@@ -28,14 +29,9 @@ use JSON qw( to_json from_json );
 use Dancer2::Plugin::JobScheduler::Testing::Utils qw( :all );
 use Database::Temp;
 
-# Test databases
-# my @drivers = qw( Pg );
-# my %test_dbs;
-
 my $test_db;
 BEGIN {
     # Create test databases
-    # %test_dbs = build_test_dbs( @drivers );
 
     my $driver = 'SQLite';
     $test_db = Database::Temp->new(
@@ -47,36 +43,9 @@ BEGIN {
         },
     );
 
-    {
-        package Dancer2::Plugin::JobScheduler::Testing::Database::ManagedHandleConfigLocal;
-        use Moo;
-        use Dancer2::Plugin::JobScheduler::Testing::Utils qw( :all );
-        has config => (
-            is => 'ro',
-            default => sub {
-                # return build_managed_handle_config(%test_dbs);
-                return {
-                    default => q{theschwartz_db1},
-                    databases => {
-                        theschwartz_db1 => {
-                            db_2_managed_handle_config( $test_db ),
-                        },
-                    },
-                };
-            },
-        );
-        1;
-    }
-
-    ## no critic (Variables::RequireLocalizedPunctuationVars)
-    $ENV{DATABASE_MANAGED_HANDLE_CONFIG}
-        = 'Dancer2::Plugin::JobScheduler::Testing::Database::ManagedHandleConfigLocal';
-
-    use Database::ManagedHandle;
-    Database::ManagedHandle->instance;
 }
 
-my %plugin_config = (
+my %job_scheduler_plugin_config = (
     default => 'theschwartz',
     schedulers => {
         theschwartz => {
@@ -84,14 +53,20 @@ my %plugin_config = (
             parameters => {
                 handle_uniqkey => 'acknowledge',
                 databases => {
-                    theschwartz_db1 => {
+                    dancer_app_db => {
                         prefix => q{},
                     },
                 },
-                dbh_callback => 'Database::ManagedHandle->instance',
+                dbh_callback => 'replaced-when-calling',
             }
         }
     }
+);
+my %database_plugin_config = (
+    connections => {
+        dancer_app_db => { db_2_dancer2_plugin_database_config( $test_db ),
+        },
+    },
 );
 
 {
@@ -101,10 +76,12 @@ my %plugin_config = (
     BEGIN {
         set log => 'debug';
         set plugins => {
-            JobScheduler => \%plugin_config,
+            JobScheduler => \%job_scheduler_plugin_config,
+            Database => \%database_plugin_config,
         };
     }
     use Dancer2::Plugin::JobScheduler;
+    use Dancer2::Plugin::Database;
 
     set serializer => 'JSON';
 
@@ -117,6 +94,12 @@ my %plugin_config = (
                 args => $h->{'args'},
                 opts => $h->{'opts'},
             },
+            opts => {
+                # database is the keyword and command from
+                # Dancer2::Plugin::Database. It takes one argument:
+                # the database name, similar to our dbh_callback.
+                dbh_callback => \&database,
+            },
         );
         status HTTP_OK;
         return \%r;
@@ -127,6 +110,9 @@ my %plugin_config = (
             client => 'theschwartz',
             search_params => {
                 task => captures->{task_name},
+            },
+            opts => {
+                dbh_callback => \&database,
             },
         );
         status HTTP_OK;

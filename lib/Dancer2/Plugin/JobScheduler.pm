@@ -10,6 +10,8 @@ use warnings;
 
 =encoding utf8
 
+=for stopwords TheSchwartz
+
 =cut
 
 #Lots of subs not covered by Pod::Coverage
@@ -31,10 +33,10 @@ use warnings;
                     client => 'TheSchwartz',
                     parameters => {
                         handle_uniqkey => 'acknowledge',
+                        dbh_callback => 'Database::ManagedHandle->instance',
                         databases => {
                             theschwartz_db1 => {
-                                prefix => q{},
-                                dbh_callback => 'Database::ManagedHandle->instance',
+                                prefix => q{schema_name.},
                             },
                         }
                     }
@@ -80,7 +82,7 @@ L<job schedulers|https://en.wikipedia.org/wiki/Job_scheduler> in L<Dancer2>
 web app.
 
 Dancer2::Plugin::JobScheduler provides an interface to submit jobs
-and query jobs currently in queue. As a Dancer2 plugin, it creates two
+and query jobs currently in queue. As a L<Dancer2> plugin, it creates two
 new commands in the web app: C<submit> and C<list_jobs>.
 
 These commands abstract away the complexity of interfacing with a job scheduler.
@@ -112,6 +114,71 @@ Dancer2::Plugin::JobScheduler supports the following job schedulers:
 
 =back
 
+=head2 Using Dancer2::Plugin::JobScheduler with Dancer2::Plugin::Database
+
+If you are doing database operations in a Dancer2 web app, you are probably
+using L<Dancer2::Plugin::Database> to get the database handle you need.
+You can use the same database handle with Dancer2::Plugin::JobScheduler.
+This can be especially useful if you are doing database transactions.
+If a transaction fails, you would probably want the scheduled job to
+be removed as well.
+
+You need to configure the databases just like you would normally
+but without dbh_callback. You would provide the handle callback at the point
+of calling C<submit_job()> or C<list_jobs()>.
+
+    use Dancer2;
+    use HTTP::Status qw( :constants status_message );
+    BEGIN {
+        set log => 'debug';
+        set plugins => {
+            JobScheduler => {
+                default => 'theschwartz',
+                schedulers => {
+                    theschwartz => {
+                        client => 'TheSchwartz',
+                        parameters => {
+                            databases => {
+                                dancer_app_db => { },
+                            },
+                            dbh_callback => 'replaced-when-calling',
+                        }
+                    }
+                },
+            },
+            Database => {
+                connections => {
+                    dancer_app_db => {
+                        driver => SQLite,
+                        database => '/tmp/dancer.sqlite'
+                    },
+                },
+            },
+        };
+    }
+    use Dancer2::Plugin::JobScheduler;
+    use Dancer2::Plugin::Database;
+    set serializer => 'JSON';
+    get q{/submit_job} => sub {
+        my %r = submit_job(
+            client => 'theschwartz',
+            job => {
+                task => 'task1',
+                args => { name => 'Mikko', age => 123 },
+                opts => {},
+            },
+            opts => {
+                # database is the keyword and command from
+                # Dancer2::Plugin::Database. It takes one argument:
+                # the database name, similar to our dbh_callback.
+                dbh_callback => \&database,
+            },
+        );
+        status HTTP_OK;
+        return \%r;
+    };
+
+
 =head1 METHODS
 
 =head2 submit
@@ -130,7 +197,7 @@ Parameter B<job> can also have sub parameters:
 
 =item B<args> can be used to provide a hash of arguments to the task. These are task specific.
 
-=item B<opts> can be used to provide a hash of options for the job scheduler. These are job scheduler specific and rarely used. They can be used, for example, to submit the job to a particular queue if there are priority queues in the system.
+=item B<opts> can be used to provide a hash of options for the job scheduler. These are job scheduler specific and rarely used. They can be used, for example, to submit the job to a particular queue if there is priority queues in the system.
 
 =back
 
@@ -158,8 +225,7 @@ You can also specify a default client.
         },
     );
 
-C<submit_job> will return a hash.
-This contains at least the following items:
+C<submit_job> will return a hash which contains at least the following items:
 
 =over 8
 
@@ -167,12 +233,12 @@ This contains at least the following items:
 
 =item status, string. Contains the status of the submit. In the case of success, this will be "OK".
 
-=item error, string. Contains error message if a message is available. Can be undef.
+=item error, string. Contains an error message if a message is available. Can also be undef.
 
 =back
 
 It can also contain other items depending on the job scheduler.
-In the case of TheSchwartz (after a successful submit) , there will be item B<id>
+In the case of TheSchwartz, after a successful submit there will be item B<id>
 which contains the id of the new job in the queue.
 
 The following example showcases a very trivial way on how to integrate C<submit_job> into
@@ -225,45 +291,6 @@ or specify it in the module.
 
 The different job schedulers have their own configuration needs.
 As an example we will cover here only TheSchwartz.
-
-It's configuration requires only the knowledge of how to connect with
-its database backends. TheShwartz can use simultaneously
-several databases as backends. When inserting a new task,
-it L<Dancer2::Plugin::JobScheduler::Client::TheSchwartz>
-loops over all available databases until it finds one
-that it can connect and writes the task there.
-TheSchwartz client does not maintain its own database handles.
-Instead, it requires the calling program to give it
-subroutine pointer or the name and method of a class
-which can provide the handle.
-In a long running process, such as a web service,
-the database handle can become invalid. Database can
-close the handle if it stays unused a long period of time.
-The database handle has to be recreated if that happens.
-
-This example creates two databases.
-
-    my %plugin_config = (
-        default => 'theschwartz',
-        schedulers => {
-            theschwartz => {
-                package => 'TheSchwartz',
-                parameters => {
-                    database_handle_callback => 'Database::ManagedHandle->instance->dbh',
-                    databases => [
-                        {
-                            id => 'theschwartz_db1',
-                            prefix => q{},
-                        },
-                    ]
-                }
-            }
-        }
-    );
-        my $get_dbh = sub {
-            my ($id) = @_;
-            return DBI->connect( $test_dbs{ $id }->connection_info );
-        };
 
 
 =head1 SEE ALSO
@@ -391,71 +418,28 @@ sub _build__clients { ## no critic (Subroutines::ProhibitUnusedPrivateSubroutine
 
 sub submit_job {
     my ($self, %args) = @_;
-    my $client_key = $args{client} ? $args{client} : $self->default;
+    # my $log = sub { $self->log(@_); };
+    # $log->(debug => 'submit_job(' . \%args . ')');
+
+    my $client_key = $args{client} ? delete $args{client} : $self->default;
+    # my $get_dbh = $args{get_dbh} ? $args{get_dbh} : undef;
+    # $log->debugf('client_key: %s', $client_key);
     my $job = $args{job};
-    $log->debugf('_clients: %s', $self->_clients);
+    my $opts = $args{opts} ? delete $args{opts} : {};
+    # $log->debugf('_clients: %s', $self->_clients);
     my $client = $self->_clients->{$client_key};
-    return ( $client->submit_job( $job ) );
+    # $log->debugf('client: %s', $client);
+
+    return $client->submit_job( $job, $opts );
 }
 
 sub list_jobs {
     my ($self, %args) = @_;
-    my $client_key = $args{client} ? $args{client} : $self->default;
+    my $client_key = $args{client} ? delete $args{client} : $self->default;
+    my $search_params = $args{search_params};
+    my $opts = $args{opts} ? delete $args{opts} : {};
     my $client = $self->_clients->{$client_key};
-    my @jobs = $client->list_jobs( $args{'search_params'} );
-    return @jobs;
+    return $client->list_jobs( $search_params, $opts );
 }
 
 1;
-
-__END__
-config:
-    JobScheduler:
-        # Establish connection / open database to test it works
-        # when creating the object
-        # not-lazy-init: true ??
-        # test-before-run: false
-        # default: theschwartz
-        default: theschwartz
-        schedulers:
-            theschwartz:
-                client: TheSchwartz
-                parameters:
-                    databases:
-                        # This TheSchwartz job scheduler has three databases
-                        -
-                            type: create_database_handle
-                            dsn: dbi:Pg:dbname=${ENV:THESCHWARTZ_DATABASE_NAME};host=${ENV:THESCHWARTZ_DATABASE_HOST};port=${ENV:THESCHWARTZ_DATABASE_PORT}
-                            username: ${ENV:THESCHWARTZ_DATABASE_USERNAME}
-                            password: ${ENV:THESCHWARTZ_DATABASE_PASSWORD}
-                            # dbi_params:
-                            # connection_args:
-                            #     ReadOnly: 0
-                            #     AutoCommit: 0
-                            #     PrintError: 0
-                            #     RaiseError: 1
-                            #     printWarn: 0
-                            #     RaiseWarn: 1
-                            #     TaintIn: 1
-                            #     TaintOut: 1
-                            #     pg_server_prepare: 0
-                            #     TraceLevel: 0
-                            prefix: ${ENV:THESCHWARTZ_DATABASE_SCHEMA}.
-                        -
-                        # Second TheSchwartz database
-                            dsn: dbi:Pg:dbname=${ENV:THESCHWARTZ_DATABASE_NAME};host=${ENV:THESCHWARTZ_DATABASE_HOST};port=${ENV:THESCHWARTZ_DATABASE_PORT}
-                            username: ${ENV:THESCHWARTZ_DATABASE_USERNAME}
-                            password: ${ENV:THESCHWARTZ_DATABASE_PASSWORD}
-                            prefix: ${ENV:THESCHWARTZ_DATABASE_SCHEMA}.
-                        -
-                        # Third TheSchwartz database
-                            type: dancer_plugin_database_connection
-                            # connection_key is not mandatory, otherwise use default.
-                            connection_key: rw
-            # Second TheSchwartz job scheduler
-            theschwartz2:
-                client: TheSchwartz
-                parameters:
-                  database:
-                      driver: Pg
-                      prefix: ${ENV:THESCHWARTZ_DATABASE_SCHEMA}.

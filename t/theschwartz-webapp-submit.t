@@ -47,8 +47,7 @@ BEGIN {
         use Moo;
         use Dancer2::Plugin::JobScheduler::Testing::Utils qw( :all );
         has config => (
-            is => 'ro',
-            default => sub {
+            is => 'ro', default => sub {
                 return {
                     default => q{theschwartz_db1},
                     databases => {
@@ -76,12 +75,9 @@ my %plugin_config = (
         theschwartz => {
             client => 'TheSchwartz',
             parameters => {
+                dbh_callback => 'Database::ManagedHandle->instance',
                 databases => {
-                    theschwartz_db1 => {
-                        # id => 'theschwartz_db1',
-                        prefix => q{},
-                        dbh_callback => 'Database::ManagedHandle->instance',
-                    },
+                    theschwartz_db1 => { },
                 }
             }
         }
@@ -89,7 +85,7 @@ my %plugin_config = (
 );
 
 {
-    package TestProgram;
+    package Dancer2::Plugin::JobScheduler::Testing::TheSchwartz::WebApp::Submit;
     use Dancer2;
     use HTTP::Status qw( :constants status_message );
     BEGIN {
@@ -136,7 +132,7 @@ my %plugin_config = (
 
 }
 
-my $app = TestProgram->to_app;
+my $app = Dancer2::Plugin::JobScheduler::Testing::TheSchwartz::WebApp::Submit->to_app;
 is(ref $app, 'CODE', 'Initialized the test app');
 
 # Activate web app

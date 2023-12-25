@@ -12,9 +12,12 @@ use warnings;
 
 =encoding utf8
 
+=for Pod::Coverage submit_job list_jobs
+
 =head1 DESCRIPTION
 
 Internal class.
+
 Not to be used separately. Please see L<Dancer2::Plugin::JobScheduler>.
 
 =cut
@@ -41,29 +44,134 @@ use TheSchwartz::JobScheduler::Job;
 
 const my $DEFAULT_HANDLE_UNIQKEY => 'no_check';
 
-=head1 PARAMETERS
+=head1 CONFIGURATION
 
-=head2 config
+The configuration of Dancer2::Plugin::JobScheduler::Client::TheSchwartz
+requires only the knowledge of how to connect with
+its database backends. TheShwartz can use simultaneously
+several databases as backends. When inserting a new task, TheSchwartz
+loops over all available databases until it finds one
+that it can connect to and inserts the task there.
+TheSchwartz client does not maintain its own database handles.
+Instead, it requires the calling program to give a
+subroutine pointer or the name and method of a class
+which can provide the handle.
 
-All parameters for this job scheduler are passed through.
+In a long running process, such as a web service,
+the database handle can become invalid. Database can
+close the handle if it stays unused a long period of time.
+The database handle has to be recreated if that happens.
+
+If callback is a subroutine pointer,
+then Dancer2::Plugin::JobScheduler will call the given
+pointer and give one argument: the name of the database
+it wants to reach.
+
+This example creates two databases and uses a locally defined
+subroutine to get the database handle:
+
+    use Database::Temp;
+    use DBI;
+    my %test_dbs = (
+        theschwartz_db1 => Database::Temp->new( driver => 'SQLite', );
+        theschwartz_db2 => Database::Temp->new( driver => 'SQLite', );
+    );
+    my $get_dbh = sub {
+        my ($id) = @_;
+        return DBI->connect( $test_dbs{ $id }->connection_info );
+    };
+    my %plugin_config = (
+        default => 'theschwartz',
+        schedulers => {
+            theschwartz => {
+                package => 'TheSchwartz',
+                parameters => {
+                    dbh_callback => $get_dbh,
+                    databases => [
+                        {
+                            id => 'theschwartz_db1',
+                            prefix => q{},
+                        },
+                    ]
+                }
+            }
+        }
+    );
+
+This example uses the Perl package L<Database::ManagedHandle>
+to provide an open database handle.
+
+    my %plugin_config = (
+        default => 'theschwartz',
+        schedulers => {
+            theschwartz => {
+                package => 'TheSchwartz',
+                parameters => {
+                    dbh_callback => 'Database::ManagedHandle->instance->dbh',
+                    databases => [
+                        {
+                            id => 'theschwartz_db1',
+                            prefix => q{},
+                        },
+                    ]
+                }
+            }
+        }
+    );
+        my $get_dbh = sub {
+            my ($id) = @_;
+            return DBI->connect( $test_dbs{ $id }->connection_info );
+        };
+
+Please see L<Dancer2::Plugin::JobScheduler> on how to attach this
+configuration to the plugin's configuration.
 
 =cut
 
 has config => (
     is          => 'ro',
     isa         => sub { croak if( ref $_[0] ne 'HASH' ) },
+    required    => 1,
 );
+
+sub _verify_configuration {
+    my ($self) = @_;
+    if( ! $self->config->{'dbh_callback'} ) {
+        my $e = 'Invalid config. Must define dbh_callback.';
+        $log->errorf( $e );
+        croak $e;
+    }
+    if( $self->config->{'databases'} ) {
+        my $databases = $self->config->{'databases'};
+        foreach my $key (keys %{ $databases }) {
+            my $database = $databases->{ $key };
+            if( $database->{'dbh_callback'} ) {
+                my $e = q{Invalid config. }
+                . q{databases->%s has item dbh_callback; database specific callbacks not supported};
+                $log->errorf( $e, $key);
+                croak sprintf $e, $key;
+            }
+        }
+    } else {
+        my $e = 'Invalid config. Must define databases.';
+        $log->errorf( $e );
+        croak $e;
+    }
+    return;
+}
 
 has _client => (
     is => 'lazy',
 );
 sub _build__client { ## no critic (Subroutines::ProhibitUnusedPrivateSubroutines)
     my $self = shift;
+    $self->_verify_configuration();
     my $c = $self->config;
     $log->debugf( 'config: %s', $c );
     my $handle_uniqkey = $c->{'handle_uniqkey'} // $DEFAULT_HANDLE_UNIQKEY;
     my $client = TheSchwartz::JobScheduler->new(
         databases => $c->{'databases'},
+        dbh_callback => 'Database::ManagedHandle->instance->dbh',
         opts => {
             handle_uniqkey => $handle_uniqkey,
         },
@@ -71,14 +179,11 @@ sub _build__client { ## no critic (Subroutines::ProhibitUnusedPrivateSubroutines
     return $client;
 }
 
-=head2 submit_job $job
-
-=cut
-
 sub submit_job {
-    my ($self, $job) = @_;
-    $log->debugf('submit_job: %s', $job);
-    croak 'No task name', if( ! $job->{'task'} );
+    my ($self, $job, $opts) = @_;
+    $log->debugf('submit_job: %s, %s', $job, $opts);
+
+    croak 'No task name' if( ! $job->{'task'} );
     my $j = TheSchwartz::JobScheduler::Job->new;
     $j->funcname( $job->{'task'} );
     $j->arg( $job->{'args'} ) if $job->{'args'};
@@ -86,45 +191,55 @@ sub submit_job {
     $j->uniqkey( $job->{'opts'}->{'uniqkey'} ) if $job->{'opts'}->{'uniqkey'};
     $j->run_after( $job->{'opts'}->{'run_after'} ) if $job->{'opts'}->{'run_after'};
 
-    my $job_id = $self->_client->insert( $j );
-    my %r = (
-        success => 1,
-        status  => 'OK',
-        error   => undef,
-        id      => $job_id,
-    );
-    if( $job_id ) {
-        return %r;
+    my %args = ( job => $j, );
+    if( $opts->{'dbh_callback'} ) {
+      $args{'dbh_callback'} = $opts->{'dbh_callback'},
     }
-    $r{success} = 0;
-    $r{status}  = 'FAIL';
-    $r{error}   = undef;
-    return %r;
+    my $job_id = $self->_client->insert( %args );
+    $log->debugf( 'job_id: %s', $job_id );
+
+    if( $job_id ) {
+        return (
+            success => 1,
+            status  => 'OK',
+            error   => undef,
+            id      => $job_id,
+        );
+    } else {
+        return (
+            success => 0,
+            status  => 'FAIL',
+            error   => undef,
+        );
+    }
 }
 
-=head2 list_jobs $args
-
-=cut
-
 sub list_jobs {
-    my ($self, $args) = @_;
-    $log->debugf('list_jobs(%s)', $args);
-    croak 'No task name', if( ! $args->{'task'} );
+    my ($self, $search_params, $opts) = @_;
+    $log->debugf('list_jobs(%s, %s)', $search_params, $opts);
 
-    my %arg;
-    $arg{'funcname'} = $args->{'task'};
-    $arg{'run_after'} = $args->{'run_after'} if exists $args->{'run_after'};
-    $arg{'grabbed_until'} = $args->{'grabbed_until'} if exists $args->{'grabbed_until'};
-    $arg{'coalesce'} = $args->{'coalesce'} if exists $args->{'coalesce'};
-
-    my @jobs = $self->_client->list_jobs( \%arg );
+    croak 'No task name', if( ! $search_params->{'task'} );
+    # my $search_parameters = $args->{'search_params'};
+    # croak 'No task name', if( ! $search_parameters->{'task'} );
+    # my %arg;
+    # $arg{'funcname'} = $search_parameters->{'task'};
+    # $arg{'run_after'} = $search_parameters->{'run_after'} if exists $search_parameters->{'run_after'};
+    # $arg{'grabbed_until'} = $search_parameters->{'grabbed_until'} if exists $search_parameters->{'grabbed_until'};
+    # $arg{'coalesce'} = $search_parameters->{'coalesce'} if exists $search_parameters->{'coalesce'};
+    $search_params->{'funcname'} = delete $search_params->{'task'};
+    my %args = ( search_params => $search_params, );
+    if( $opts->{'dbh_callback'} ) {
+      $args{'dbh_callback'} = $opts->{'dbh_callback'},
+    }
+    # my @jobs = $self->_client->list_jobs( search_params => \%arg, );
+    my @jobs = $self->_client->list_jobs( %args, );
     $log->debugf('list_jobs(): jobs: %s', \@jobs);
     my @r_jobs;
     foreach my $job (@jobs) {
         my %opts;
         $opts{'unique_key'} = $job->uniqkey if $job->uniqkey;
         push @r_jobs, {
-            task => $args->{'task'},
+            task => $search_params->{'funcname'},
             args => $job->arg,
             opts => \%opts,
         };
