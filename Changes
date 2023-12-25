@@ -1,6 +1,8 @@
 Revision history for {{$dist->name}}
 
 {{$NEXT}}
+
+0.002     2023-12-25 22:44:59+02:00 Europe/Helsinki
             * Change API to accept dbh_callback in every call
             * Add more stopwords
             * Rename test which uses Dancer2::Plugin::Database
