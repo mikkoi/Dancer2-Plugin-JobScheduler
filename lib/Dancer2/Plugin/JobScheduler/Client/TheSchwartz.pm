@@ -12,7 +12,7 @@ use warnings;
 
 =encoding utf8
 
-=for Pod::Coverage submit_job list_jobs
+=for Pod::Coverage config submit_job list_jobs
 
 =head1 DESCRIPTION
 
