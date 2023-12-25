@@ -193,7 +193,7 @@ sub submit_job {
 
     my %args = ( job => $j, );
     if( $opts->{'dbh_callback'} ) {
-      $args{'dbh_callback'} = $opts->{'dbh_callback'},
+      $args{'dbh_callback'} = $opts->{'dbh_callback'};
     }
     my $job_id = $self->_client->insert( %args );
     $log->debugf( 'job_id: %s', $job_id );
@@ -229,7 +229,7 @@ sub list_jobs {
     $search_params->{'funcname'} = delete $search_params->{'task'};
     my %args = ( search_params => $search_params, );
     if( $opts->{'dbh_callback'} ) {
-      $args{'dbh_callback'} = $opts->{'dbh_callback'},
+      $args{'dbh_callback'} = $opts->{'dbh_callback'};
     }
     # my @jobs = $self->_client->list_jobs( search_params => \%arg, );
     my @jobs = $self->_client->list_jobs( %args, );
