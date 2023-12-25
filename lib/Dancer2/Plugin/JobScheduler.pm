@@ -10,7 +10,7 @@ use warnings;
 
 =encoding utf8
 
-=for stopwords TheSchwartz
+=for stopwords TheSchwartz Gearman
 
 =cut
 

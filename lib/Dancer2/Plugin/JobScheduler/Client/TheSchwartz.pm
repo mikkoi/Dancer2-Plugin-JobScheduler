@@ -12,6 +12,8 @@ use warnings;
 
 =encoding utf8
 
+=for stopwords TheSchwartz
+
 =for Pod::Coverage submit_job list_jobs
 
 =head1 DESCRIPTION
