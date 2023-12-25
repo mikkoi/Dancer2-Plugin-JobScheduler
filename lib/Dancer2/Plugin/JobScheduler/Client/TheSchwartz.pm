@@ -12,8 +12,6 @@ use warnings;
 
 =encoding utf8
 
-=for stopwords TheSchwartz
-
 =for Pod::Coverage submit_job list_jobs
 
 =head1 DESCRIPTION
@@ -50,7 +48,7 @@ const my $DEFAULT_HANDLE_UNIQKEY => 'no_check';
 
 The configuration of Dancer2::Plugin::JobScheduler::Client::TheSchwartz
 requires only the knowledge of how to connect with
-its database backends. TheShwartz can use simultaneously
+its database backends. TheSchwartz can use simultaneously
 several databases as backends. When inserting a new task, TheSchwartz
 loops over all available databases until it finds one
 that it can connect to and inserts the task there.

@@ -10,8 +10,6 @@ use warnings;
 
 =encoding utf8
 
-=for stopwords TheSchwartz Gearman
-
 =cut
 
 #Lots of subs not covered by Pod::Coverage
