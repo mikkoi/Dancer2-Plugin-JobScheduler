@@ -1,6 +1,8 @@
 Revision history for {{$dist->name}}
 
 {{$NEXT}}
+
+0.003     2023-12-26 23:35:20+02:00 Europe/Helsinki
             * Correct heredocs
             * Add Git::NextVersion Dist::Zilla plugin
 
