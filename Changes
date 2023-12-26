@@ -2,6 +2,7 @@ Revision history for {{$dist->name}}
 
 {{$NEXT}}
             * Correct heredocs
+            * Add Git::NextVersion Dist::Zilla plugin
 
 0.002     2023-12-25 22:44:59+02:00 Europe/Helsinki
             * Change API to accept dbh_callback in every call
