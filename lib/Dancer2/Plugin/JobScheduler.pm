@@ -312,7 +312,7 @@ sub _build_context {
     return %ctx;
 }
 
-use Dancer2::Plugin;
+use Dancer2::Plugin 0.200002;
 
 plugin_keywords qw(
     submit_job
