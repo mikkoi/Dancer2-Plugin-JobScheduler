@@ -2,6 +2,7 @@ Revision history for {{$dist->name}}
 
 {{$NEXT}}
             * Add dependency on Dancer2 v. 0.200002
+            * Add test dependency on Dancer2 v. 0.301
 
 0.003     2023-12-26 23:35:20+02:00 Europe/Helsinki
             * Correct heredocs

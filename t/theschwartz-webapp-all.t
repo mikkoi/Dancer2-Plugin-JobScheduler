@@ -96,7 +96,8 @@ my %plugin_config = (
 
 {
     package Dancer2::Plugin::JobScheduler::Testing::TheSchwartz::WebApp::All;
-    use Dancer2;
+    # request_data command available in Dancer2 0.301000
+    use Dancer2 0.301;
     use HTTP::Status qw( :constants status_message );
     BEGIN {
         set log => 'debug';
