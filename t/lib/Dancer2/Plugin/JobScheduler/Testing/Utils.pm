@@ -100,8 +100,8 @@ sub db_2_dancer2_plugin_database_config {
     my ($db) = @_;
     my %c;
     if( $db->driver eq 'SQLite' ) {
-        @c{'driver'} = 'SQLite';
-        @c{'database'} = $db->info->{'filepath'};
+        $c{'driver'} = 'SQLite';
+        $c{'database'} = $db->info->{'filepath'};
     } else {
         croak 'Unknown driver';
     }
