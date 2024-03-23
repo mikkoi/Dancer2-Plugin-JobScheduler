@@ -1,6 +1,8 @@
 Revision history for {{$dist->name}}
 
 {{$NEXT}}
+
+0.005     2024-03-23 17:27:33+01:00 Europe/Stockholm
             * Remove unused sub and commented code
             * Fix hash assignment
 
