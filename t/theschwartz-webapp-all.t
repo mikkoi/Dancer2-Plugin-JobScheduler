@@ -20,7 +20,15 @@ use lib "$lib_path";
 use Test::WWW::Mechanize::PSGI;
 use HTTP::Request::Common;
 use Crypt::JWT qw(encode_jwt decode_jwt);
-use JSON qw( to_json from_json );
+
+# We have had problems with some JSON backends in keeping numbers numerical.
+# So we force the backend by first loading Cpanel::JSON::XS
+# and then explicitly demanding JSON to use it
+BEGIN {
+    use Cpanel::JSON::XS ();
+    $ENV{PERL_JSON_BACKEND}='Cpanel::JSON::XS'; ## no critic (Variables::RequireLocalizedPunctuationVars)
+}
+use JSON;
 
 # Activate for testing
 # use Log::Any::Adapter ('Stdout', log_level => 'debug' );

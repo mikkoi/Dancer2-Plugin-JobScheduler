@@ -8,6 +8,15 @@ use HTTP::Request::Common;
 use Crypt::JWT qw(encode_jwt decode_jwt);
 use Database::ManagedHandle;
 
+# We have had problems with some JSON backends in keeping numbers numerical.
+# So we force the backend by first loading Cpanel::JSON::XS
+# and then explicitly demanding JSON to use it
+BEGIN {
+    use Cpanel::JSON::XS ();
+    $ENV{PERL_JSON_BACKEND}='Cpanel::JSON::XS'; ## no critic (Variables::RequireLocalizedPunctuationVars)
+}
+use JSON;
+
 # Activate for testing
 # use Log::Any::Adapter ('Stdout', log_level => 'debug' );
 
@@ -62,7 +71,6 @@ $mech->content_is(q{OK}, 'Correct return');
 
 # Check configuration
 $mech->get_ok(q{/config});
-use JSON qw( to_json );
 $mech->content_is(to_json(\%plugin_config,{utf8=>1,canonical=>1,}), 'Correct return');
 
 done_testing();
