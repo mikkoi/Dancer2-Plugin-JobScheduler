@@ -39,25 +39,25 @@ my %plugin_config = (
 
 {
     package Dancer2::Plugin::JobScheduler::Testing::TheSchwartz::WebApp::Config;
-	use Dancer2;
+    use Dancer2;
     use HTTP::Status qw( :constants status_message );
-	BEGIN {
+    BEGIN {
         set log => 'debug';
         set plugins => {
             JobScheduler => \%plugin_config,
         };
-	}
-	use Dancer2::Plugin::JobScheduler;
+    }
+    use Dancer2::Plugin::JobScheduler;
 
-	get q{/} => sub {
+    get q{/} => sub {
         status HTTP_OK;
-		return 'OK';
-	};
+        return 'OK';
+    };
 
-	get q{/config} => sub {
+    get q{/config} => sub {
         status HTTP_OK;
-		return to_json(config->{'plugins'}->{'JobScheduler'},{utf8=>1,canonical=>1,});
-	};
+        return to_json(config->{'plugins'}->{'JobScheduler'},{utf8=>1,canonical=>1,});
+    };
 }
 
 my $app = Dancer2::Plugin::JobScheduler::Testing::TheSchwartz::WebApp::Config->to_app;
