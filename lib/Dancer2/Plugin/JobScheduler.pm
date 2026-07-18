@@ -322,14 +322,16 @@ plugin_keywords qw(
 
 has default => (
     is          => 'ro',
+    required    => 0,
     isa => sub {
-        croak if(! ($_[0] =~ m/^[[:word:]]{1,}$/msx) );
+        croak if( defined $_[0] && $_[0] !~ m/^[[:word:]]{1,}$/msx );
     },
     from_config => 'default',
 );
 
 has schedulers => (
     is => 'ro',
+    required    => 1,
     isa => sub {
         croak if(ref $_[0] ne 'HASH');
     },
