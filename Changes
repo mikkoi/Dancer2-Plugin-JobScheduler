@@ -1,6 +1,7 @@
 Revision history for {{$dist->name}}
 
 {{$NEXT}}
+            * Add tests to verify config errors.
 
 0.007     2026-07-18 18:55:49+02:00 Europe/Stockholm
             * Remove Log::Any hooks.
