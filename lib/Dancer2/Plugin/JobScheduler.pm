@@ -301,16 +301,7 @@ use Carp;
 use English '-no_match_vars';
 use Module::Load;
 
-use Log::Any qw( $log ), hooks => { build_context => [ \&_build_context, ], };
-use Log::Any::Adapter::Util;
-sub _build_context {
-    # my ($level, $category, $data) = @_;
-    my %ctx;
-    my @caller = Log::Any::Adapter::Util::get_correct_caller();
-    $ctx{file} = $caller[1];
-    $ctx{line} = $caller[2];
-    return %ctx;
-}
+use Log::Any qw( $log );
 
 use Dancer2::Plugin 0.200002;
 
