@@ -64,9 +64,9 @@ sub build_test_dbs {
 sub db_2_managed_handle_config {
     my ($db) = @_;
     my $name = $db->name();
-    my @info = $db->connection_info();
+    my @conn_info = $db->connection_info();
     my %c;
-    @c{'dsn','username','password','attr'} = @info;
+    @c{'dsn','username','password','attr'} = @conn_info;
     return %c;
 }
 
@@ -81,6 +81,9 @@ sub db_2_dancer2_plugin_database_config {
     }
     return %c;
 }
+
+1;
+__END__
 
 # ##############################################################################
 # BEGIN {
@@ -105,4 +108,3 @@ sub db_2_dancer2_plugin_database_config {
 #     use Database::ManagedHandle;
 # }
 
-1;
