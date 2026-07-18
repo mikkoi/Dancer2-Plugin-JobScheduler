@@ -219,19 +219,11 @@ sub list_jobs {
     $log->debugf('list_jobs(%s, %s)', $search_params, $opts);
 
     croak 'No task name', if( ! $search_params->{'task'} );
-    # my $search_parameters = $args->{'search_params'};
-    # croak 'No task name', if( ! $search_parameters->{'task'} );
-    # my %arg;
-    # $arg{'funcname'} = $search_parameters->{'task'};
-    # $arg{'run_after'} = $search_parameters->{'run_after'} if exists $search_parameters->{'run_after'};
-    # $arg{'grabbed_until'} = $search_parameters->{'grabbed_until'} if exists $search_parameters->{'grabbed_until'};
-    # $arg{'coalesce'} = $search_parameters->{'coalesce'} if exists $search_parameters->{'coalesce'};
     $search_params->{'funcname'} = delete $search_params->{'task'};
     my %args = ( search_params => $search_params, );
     if( $opts->{'dbh_callback'} ) {
       $args{'dbh_callback'} = $opts->{'dbh_callback'};
     }
-    # my @jobs = $self->_client->list_jobs( search_params => \%arg, );
     my @jobs = $self->_client->list_jobs( %args, );
     $log->debugf('list_jobs(): jobs: %s', \@jobs);
     my @r_jobs;
