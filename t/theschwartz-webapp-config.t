@@ -18,10 +18,9 @@ BEGIN {
     use Cpanel::JSON::XS ();
     $ENV{PERL_JSON_BACKEND}='Cpanel::JSON::XS'; ## no critic (Variables::RequireLocalizedPunctuationVars)
 }
-use JSON;
+use JSON; ## no critic (Community::PreferredAlternatives)
 
 my %plugin_config = (
-    default => 'theschwartz',
     schedulers => {
         theschwartz => {
             package => 'TheSchwartz',

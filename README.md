@@ -14,7 +14,7 @@ Plugin for Dancer2 web app to send and query jobs in different job schedulers
 
 # VERSION
 
-0.007
+0.008
 
 
 # SYNOPSIS

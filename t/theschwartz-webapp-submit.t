@@ -9,7 +9,7 @@ use Test2::V0;
 set_encoding('utf8');
 
 # Add t/lib to @INC
-use FindBin 1.51 qw( $RealBin );
+use FindBin 1.51 qw( $RealBin ); ## no critic (Community::DiscouragedModules)
 use File::Spec;
 my $lib_path;
 
@@ -19,8 +19,6 @@ BEGIN {
 use lib "$lib_path";
 
 use Test::WWW::Mechanize::PSGI;
-use HTTP::Request::Common;
-use Crypt::JWT qw(encode_jwt decode_jwt);
 
 # We have had problems with some JSON backends in keeping numbers numerical.
 # So we force the backend by first loading Cpanel::JSON::XS
@@ -29,7 +27,7 @@ BEGIN {
     use Cpanel::JSON::XS ();
     $ENV{PERL_JSON_BACKEND}='Cpanel::JSON::XS'; ## no critic (Variables::RequireLocalizedPunctuationVars)
 }
-use JSON;
+use JSON; ## no critic (Community::PreferredAlternatives)
 
 # Activate for testing
 # use Log::Any::Adapter ('Stdout', log_level => 'debug' );
