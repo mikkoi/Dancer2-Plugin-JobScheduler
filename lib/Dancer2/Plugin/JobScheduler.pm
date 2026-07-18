@@ -307,7 +307,7 @@ There is a Dancer2 plugin for Minion: L<Dancer2::Plugin::Minion>.
 
 =cut
 
-use Carp;
+use Carp qw( croak );
 use English '-no_match_vars';
 use Module::Load;
 
@@ -361,7 +361,7 @@ sub _verify_configuration {
             return (keys %{ $self->schedulers })[0];
         }
     }
-    return;
+    return 1; # All good. Otherwise we would have croaked.
 }
 
 
