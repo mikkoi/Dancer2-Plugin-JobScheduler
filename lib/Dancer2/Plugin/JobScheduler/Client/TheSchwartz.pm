@@ -6,7 +6,7 @@ use warnings;
 
 # ABSTRACT: A front to the client of the job scheduler or other object via which the jobs are submitted
 
-our $VERSION = '0.007';
+our $VERSION = '0.008';
 
 =pod
 

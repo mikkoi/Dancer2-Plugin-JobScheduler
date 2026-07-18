@@ -4,7 +4,7 @@ use warnings;
 
 # ABSTRACT: Plugin for Dancer2 web app to send and query jobs in different job schedulers
 
-our $VERSION = '0.007';
+our $VERSION = '0.008';
 
 =pod
 
