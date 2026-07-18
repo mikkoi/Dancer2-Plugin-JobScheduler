@@ -75,6 +75,8 @@ use warnings;
 
 =head1 DESCRIPTION
 
+=for stopwords Gearman
+
 Dancer2::Plugin::JobScheduler is an interface to access different
 L<job schedulers|https://en.wikipedia.org/wiki/Job_scheduler> in L<Dancer2>
 web app.
@@ -407,17 +409,11 @@ sub _build__clients { ## no critic (Subroutines::ProhibitUnusedPrivateSubroutine
 
 sub submit_job {
     my ($self, %args) = @_;
-    # my $log = sub { $self->log(@_); };
-    # $log->(debug => 'submit_job(' . \%args . ')');
 
     my $client_key = $args{client} ? delete $args{client} : $self->default;
-    # my $get_dbh = $args{get_dbh} ? $args{get_dbh} : undef;
-    # $log->debugf('client_key: %s', $client_key);
     my $job = $args{job};
     my $opts = $args{opts} ? delete $args{opts} : {};
-    # $log->debugf('_clients: %s', $self->_clients);
     my $client = $self->_clients->{$client_key};
-    # $log->debugf('client: %s', $client);
 
     return $client->submit_job( $job, $opts );
 }
