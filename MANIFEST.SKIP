@@ -17,6 +17,5 @@ local/
 .lvimrc
 Session.vim
 dzil-generated-cpanfile
-README.md
 MYMETA.json
 MYMETA.yml
